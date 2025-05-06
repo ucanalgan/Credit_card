@@ -2,6 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import { errorHandler } from './middleware/errorHandler';
+import userRoutes from './routes/users';
+import cardRoutes from './routes/cards';
+import transactionRoutes from './routes/transactions';
 
 dotenv.config();
 
@@ -9,73 +13,30 @@ const app = express();
 const prisma = new PrismaClient();
 const port = process.env.PORT || 3001;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Kullanıcı oluşturma
-app.post('/api/users', async (req, res) => {
-  try {
-    const { email, name } = req.body;
-    const user = await prisma.user.create({
-      data: { email, name }
-    });
-    res.json(user);
-  } catch (error) {
-    res.status(400).json({ error: 'Kullanıcı oluşturulamadı' });
-  }
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/cards', cardRoutes);
+app.use('/api/transactions', transactionRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Kredi kartı ekleme
-app.post('/api/cards', async (req, res) => {
-  try {
-    const { name, balance, interestRate, dueDate, minimumPayment, userId } = req.body;
-    const card = await prisma.creditCard.create({
-      data: {
-        name,
-        balance,
-        interestRate,
-        dueDate,
-        minimumPayment,
-        userId
-      }
-    });
-    res.json(card);
-  } catch (error) {
-    res.status(400).json({ error: 'Kredi kartı eklenemedi' });
-  }
-});
+// Error handling middleware (must be after all routes)
+app.use(errorHandler);
 
-// Kullanıcının kartlarını getirme
-app.get('/api/users/:userId/cards', async (req, res) => {
-  try {
-    const cards = await prisma.creditCard.findMany({
-      where: { userId: req.params.userId }
-    });
-    res.json(cards);
-  } catch (error) {
-    res.status(400).json({ error: 'Kartlar getirilemedi' });
-  }
-});
-
-// İşlem ekleme
-app.post('/api/transactions', async (req, res) => {
-  try {
-    const { amount, type, date, description, cardId } = req.body;
-    const transaction = await prisma.transaction.create({
-      data: {
-        amount,
-        type,
-        date,
-        description,
-        cardId
-      }
-    });
-    res.json(transaction);
-  } catch (error) {
-    res.status(400).json({ error: 'İşlem eklenemedi' });
-  }
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received. Closing HTTP server and DB connections');
+  await prisma.$disconnect();
+  process.exit(0);
 });
 
 app.listen(port, () => {
-  console.log(`Server ${port} portunda çalışıyor`);
+  console.log(`Server running on port ${port}`);
 }); 
