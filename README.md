@@ -366,6 +366,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <p>Made with ❤️ by Your Name</p>
-  <p>© 2023 Credit Card Debt Tracker</p>
+  <p>Made with ❤️ by ucanalgan</p>
+  <p>© 2025 Credit Card Debt Tracker</p>
 </div> 
